@@ -1,3 +1,18 @@
+/**
+ * AnimatedCounter Component
+ * 
+ * This component animates a number from 0 to a target value.
+ * Used in the hero section to make metrics feel alive.
+ * 
+ * Props:
+ * - value: the final number to count up to
+ * - duration: how long the animation takes (ms)
+ * - prefix: symbol before number (like ₹)
+ * - suffix: symbol after number (like h or %)
+ * 
+ * Learning note: uses useEffect to trigger animation on value change
+ * and requestAnimationFrame for smooth counting.
+ */
 import { useEffect, useState } from 'react';
 
 interface AnimatedCounterProps {
