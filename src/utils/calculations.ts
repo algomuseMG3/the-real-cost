@@ -1,0 +1,111 @@
+/**
+ * calculations.ts
+ * 
+ * All pure math functions for The Real Cost.
+ * "Pure" means: same input always gives same output.
+ * No side effects, no state — just math.
+ * 
+ * Functions I added:
+ * - calcMoneySaved      → spend × days tracked
+ * - calcLifePercent     → habit hours as % of waking life (16h/day)
+ * - calcYearlyProjection → weekly hours × 52 weeks
+ * - calcOpportunityCost  → hours × hourly value = money equivalent
+
+ * - calcCoursesCompletable → yearly hours ÷ 40hr avg course
+ * - calcWeeklyReclaimed    → sum of (startHours - dailyHours) × 7
+ 
+ * 
+ * Key learning: these functions don't know about React or the UI.
+ * They just take numbers and return numbers.
+ * Components call these functions and display the results.
+ */
+/**
+ * Pure calculation functions for "The Real Cost"
+ * These functions power the reflective data storytelling without using clinical jargon.
+ */
+
+/**
+ * Calculates the annual monetary equivalent of time spent on a habit.
+ * @param dailyHours Hours spent per day
+ * @param hourlyValue User's estimated personal or professional value per hour
+ * @returns Total yearly cost in currency
+ */
+export function calcYearlyCost(dailyHours: number, hourlyValue: number): number {
+  return Math.round(dailyHours * 365 * hourlyValue);
+}
+
+/**
+ * Calculates the direct financial savings accumulated over the tracked period.
+ * @param dailySpend Average daily amount previously spent on the habit
+ * @param daysTracked Number of days the user has been actively reclaiming this habit
+ * @returns Total money saved
+ */
+export function calcMoneySaved(dailySpend: number, daysTracked: number): number {
+  return Math.round(dailySpend * daysTracked);
+}
+
+/**
+ * Calculates the percentage of the user's remaining waking life consumed by a daily habit.
+ * Assumes 16 waking hours per day.
+ * @param hoursLost Daily hours spent on the habit
+ * @param ageYears Current age of the user
+ * @param lifeExpectancy Expected lifespan (default 80)
+ * @returns Percentage of remaining waking life
+ */
+export function calcLifePercent(hoursLost: number, ageYears: number, lifeExpectancy: number = 80): number {
+  if (ageYears >= lifeExpectancy) return 0;
+  // If you spend `hoursLost` out of 16 waking hours every day, 
+  // it consistently represents (hoursLost / 16) of your waking life.
+  const wakingHoursPerDay = 16;
+  const percent = (hoursLost / wakingHoursPerDay) * 100;
+  return Number(percent.toFixed(1));
+}
+
+/**
+ * Projects the yearly accumulated hours based on a weekly rate.
+ * @param weeklyHours Hours spent or reclaimed per week
+ * @returns Projected hours over a 52-week year
+ */
+export function calcYearlyProjection(weeklyHours: number): number {
+  return Math.round(weeklyHours * 52);
+}
+
+/**
+ * Calculates the potential value or opportunity created from reclaimed time.
+ * @param hoursReclaimed Total hours reclaimed
+ * @param valuePerHour Estimated value per hour
+ * @returns Total opportunity value
+ */
+export function calcOpportunityCost(hoursReclaimed: number, valuePerHour: number): number {
+  return Math.round(hoursReclaimed * valuePerHour);
+}
+/**
+ * Calculates hoe many full courses someone could complete
+ * with their reclaimed hours. Assumes avg course = 40 hours
+ * @param yearlyHoursReclaimed Total hours reclaimed in a year
+ * @returns number of full courses completed
+ 
+ */
+export function calcCourseCompleted(
+  yearlyHoursReclaimed: number
+): number {
+  const avgCourseHours = 40;
+  return Math.floor(yearlyHoursReclaimed / avgCourseHours);
+}
+/**
+ * Calculates total hours reclaimed across all habits this week
+ * Reclaimed= start hours- currentHours per habit, times  days
+ * @param habits array of user habits
+ * @returns total weekly hours reclaimed
+ */
+export function calcWeeklyReclaimed(
+  habits : { dailyHours: number ; startHours : number } []
+) : number {
+  return Math.round(
+    habits.reduce((total, habit) => {
+      const dailyReclaimed = habit.startHours - habit.dailyHours;
+      return total + (dailyReclaimed >0 ? dailyReclaimed * 7 : 0);
+    },0) 
+    *10 )/10;
+}
+
