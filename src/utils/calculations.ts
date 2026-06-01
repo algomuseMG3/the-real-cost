@@ -6,13 +6,15 @@
  * No side effects, no state — just math.
  * 
  * Functions I added:
- * - calcMoneySaved      → spend × days tracked
- * - calcLifePercent     → habit hours as % of waking life (16h/day)
- * - calcYearlyProjection → weekly hours × 52 weeks
- * - calcOpportunityCost  → hours × hourly value = money equivalent
+ * - calcTimeCost - dailyHours * 365 * hourlyValue
+ * - calcMoneySaved      - spend * days tracked
+ * - calcLifePercent     - habit hours as % of waking life (16h/day)
+ * - calcYearlyProjection - weekly hours * 52 weeks
+ * - calcOpportunityCost  - hours * hourly value = money equivalent
 
- * - calcCoursesCompletable → yearly hours ÷ 40hr avg course
- * - calcWeeklyReclaimed    → sum of (startHours - dailyHours) × 7
+ * - calcCoursesCompletable -yearly hours ÷ 40hr avg course
+ * - calcWeeklyReclaimed    - sum of (startHours - dailyHours) * 7
+ * -calcMoneyCost - dailyCost * 365
  
  * 
  * Key learning: these functions don't know about React or the UI.
@@ -30,7 +32,7 @@
  * @param hourlyValue User's estimated personal or professional value per hour
  * @returns Total yearly cost in currency
  */
-export function calcYearlyCost(dailyHours: number, hourlyValue: number): number {
+export function calcTimeCost(dailyHours: number, hourlyValue: number): number {
   return Math.round(dailyHours * 365 * hourlyValue);
 }
 
@@ -107,5 +109,13 @@ export function calcWeeklyReclaimed(
       return total + (dailyReclaimed >0 ? dailyReclaimed * 7 : 0);
     },0) 
     *10 )/10;
+}
+/**
+ * Calculates total direct money spent on a habit per year
+ * @param dailyCost money spent per day on this habit
+ * @returns yearly direct cost
+ */
+export function calcMoneyCost (dailyCost : number ) : number {
+  return Math.round(dailyCost * 365);
 }
 
