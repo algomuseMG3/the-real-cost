@@ -289,4 +289,238 @@ const focusTimeGained = Number(
     return Math.max(0, Number((initialBaselineWeekly - lost).toFixed(1)));
   });
 
-  
+  return (
+    <div className="min-h-screen bg-app-bg text-app-text flex flex-col justify-between selection:bg-app-green/20 selection:text-app-green">
+      
+      {/* Top Demo / Environment Switcher Banner */}
+      <div className="bg-app-surface border-b border-app-border py-2 px-6 text-xs">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center space-x-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-app-green"></span>
+            <span className="text-app-muted font-light">
+              Mode: <strong className="text-app-text font-normal">{isDemoRoute ? 'Seeded Demo (/demo)' : 'Live Dashboard'}</strong>
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-4 text-[11px]">
+            <button
+              onClick={() => {
+                // Toggle onboarding
+                setIsOnboarding(true);
+              }}
+              className="text-app-muted hover:text-app-text premium-transition underline decoration-app-border hover:decoration-app-muted"
+            >
+              Re-run Onboarding
+            </button>
+
+            <span className="text-app-border">•</span>
+
+            <button
+              onClick={() => {
+                // Load pure seed data instantly
+                setUser(SEED_USER);
+                setHabits(SEED_HABITS);
+                setMilestones(SEED_MILESTONES);
+              }}
+              className="text-app-muted hover:text-app-text premium-transition underline decoration-app-border hover:decoration-app-muted"
+              title="Reload the rich default behavioral dataset"
+            >
+              Load Demo Dataset
+            </button>
+
+            <span className="text-app-border">•</span>
+
+            <button
+              onClick={() => setModalMode('settings')}
+              className="text-app-green hover:text-app-green/80 premium-transition font-medium"
+            >
+              Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Navbar */}
+      <Navbar 
+        streakDays={user.streakDays} 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab}
+        onResetData={() => setModalMode('settings')}
+      />
+
+      {/* Main Content Area */}
+      <main className="max-w-6xl mx-auto px-6 py-4 flex-grow w-full">
+        
+        {/* TAB 1: TODAY */}
+        {activeTab === 'today' && (
+          <div className="space-y-12 animate-fade-in">
+            
+            <HeroSection 
+              weekRange={user.weekStart}
+              hoursReclaimed={weeklyHoursReclaimed}
+              moneySaved={moneySaved}
+              focusTimeGained={focusTimeGained}
+              onTrackPercentage={onTrackPercentage}
+              currency={user.currency}
+              supportingQuote={ROTATING_QUOTES[quoteIndex]}
+            />
+
+            {/* Clickable quote reinforcement notice */}
+            <div className="text-right -mt-8 mb-4">
+              <button 
+                onClick={cycleQuote}
+                className="text-[10px] text-app-muted hover:text-app-text premium-transition italic"
+                title="Click to cycle reflection reinforcement"
+              >
+                ✨ Notice another reflection
+              </button>
+            </div>
+
+            <DailyReflection 
+              reflectionSentence={
+                weeklyHoursReclaimed > 5 
+                  ? `You reclaimed ${weeklyHoursReclaimed} hours this week. Small changes are beginning to compound.`
+                  : "This week contained your lowest distraction time yet."
+              }
+              supportingInsight="Grounded entirely in your logged behavioral patterns."
+            />
+
+            {/* Preview of HabitCards */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] uppercase tracking-[0.08em] text-app-muted font-medium">
+                  Active Patterns
+                </span>
+                <button
+                  onClick={() => setActiveTab('habits')}
+                  className="text-xs text-app-green hover:underline"
+                >
+                  View All & Edit →
+                </button>
+              </div>
+              
+              <HabitCards 
+                habits={habits.slice(0, 2)} 
+                hourlyValue={user.hourlyValue}
+                currency={user.currency}
+                onUpdateHours={handleUpdateHours}
+                onDeleteHabit={handleDeleteHabit}
+              />
+            </div>
+
+          </div>
+        )}
+
+        {/* TAB 2: HABITS */}
+        {activeTab === 'habits' && (
+          <div className="space-y-8 animate-fade-in py-4">
+            
+            {/* Top overview banner */}
+            <div className="premium-card p-6 bg-app-surface/50">
+              <h2 className="text-sm font-medium text-app-text mb-1">
+                Intentional Time Allocation
+              </h2>
+              <p className="text-xs text-app-muted font-light leading-relaxed max-w-2xl">
+                Below are the active habits you are currently tracking. Adjust their daily hours as you notice yourself spending less time on them. Reclaiming even 15 minutes a day compounds into full days of freedom over the year.
+              </p>
+            </div>
+
+            <HabitCards 
+              habits={habits} 
+              hourlyValue={user.hourlyValue}
+              currency={user.currency}
+              onUpdateHours={handleUpdateHours}
+              onDeleteHabit={handleDeleteHabit}
+              onAddHabit={() => setModalMode('add-habit')}
+            />
+
+            {/* Empty State protection */}
+            {habits.length === 0 && (
+              <div className="text-center py-16 space-y-4 border border-app-border/40 rounded-xl">
+                <p className="font-serif italic text-app-muted text-lg">
+                  “Awareness begins with noticing patterns.”
+                </p>
+                <p className="text-xs text-app-muted max-w-md mx-auto font-light">
+                  Add your first habit to begin understanding where your time quietly goes.
+                </p>
+                <button
+                  onClick={() => setModalMode('add-habit')}
+                  className="px-4 py-2 bg-app-green text-app-bg rounded-lg text-xs font-medium uppercase tracking-wider"
+                >
+                  Add First Habit
+                </button>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {/* TAB 3: PROGRESS */}
+        {activeTab === 'progress' && (
+          <div className="space-y-12 animate-fade-in py-4">
+            
+            <JourneyGraph 
+              weeks={weeks}
+              hoursLostData={hoursLostData}
+              hoursReclaimedData={hoursReclaimedData}
+            />
+
+            <MilestonesPanel 
+              milestones={milestones}
+              currency={user.currency}
+            />
+
+            <FutureImpactPanel 
+              yearlyHoursReclaimed={yearlyHoursReclaimed}
+              yearlyMoneySaved={yearlyMoneySaved}
+              currency={user.currency}
+            />
+
+          </div>
+        )}
+
+        {/* TAB 4: INSIGHTS */}
+        {activeTab === 'insights' && (
+          <InsightsTab 
+            user={user}
+            habits={habits}
+            onUpdateAge={(newAge) => handleUpdateUser({ age: newAge })}
+          />
+        )}
+
+      </main>
+
+      {/* Modals */}
+      {modalMode && (
+        <ConfigureModal 
+          mode={modalMode}
+          user={user}
+          onClose={() => setModalMode(null)}
+          onAddHabit={handleAddHabit}
+          onUpdateUser={handleUpdateUser}
+          onResetData={handleResetData}
+        />
+      )}
+
+      {/* Premium Footer */}
+      <footer className="border-t border-app-border mt-12 bg-app-bg/50 py-8 text-xs text-app-muted">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 font-light">
+          <div>
+            <span className="font-serif text-app-text font-normal">the real cost</span>
+            <span className="mx-2 text-app-border">•</span>
+            <span>A calm behavioral self-awareness companion</span>
+          </div>
+
+          <div className="flex items-center space-x-6 text-[11px]">
+            <span>No Leaderboards</span>
+            <span>•</span>
+            <span>No Guilt</span>
+            <span>•</span>
+            <span>Self-Comparison Only</span>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  );
+}
