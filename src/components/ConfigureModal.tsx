@@ -74,7 +74,7 @@ export const ConfigureModal: React.FC<ConfigureModalProps> = ({
     if (!onUpdateUser) return;
 
     onUpdateUser({
-      name: userName.trim() || 'Aaran',
+      name: userName.trim() || 'Monika',
       hourlyValue: Number(hourlyValue) || 500,
       currency
     });
