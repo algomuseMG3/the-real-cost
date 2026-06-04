@@ -1,3 +1,29 @@
+/**
+ * HeroSection Component
+ *
+ * Displays the main emotional headline and 4 metric cards.
+ * This component is "dumb" — it displays only, never calculates.
+ * All numbers come from App.tsx as props.
+ *
+ * Props it receives:
+ * - weekRange        → date string shown as eyebrow text
+ * - hoursReclaimed   → from calcWeeklyReclaimed() in calculations.ts
+ * - moneySaved       → from calcMoneySaved() in calculations.ts
+ * - focusTimeGained  → hours freed up for deep work
+ * - onTrackPercentage → how consistent the user has been
+ * - currency         → ₹ or $ depending on user settings
+ * - supportingQuote  → rotating quote from seedData
+ *
+ * Key things I learned:
+ * - AnimatedCounter makes numbers count up smoothly on load
+ * - Props with just display data = "presentational component"
+ * - The 4 cards use CSS grid — responsive across screen sizes
+ * - All real calculation happens in calculations.ts, not here
+ *
+ * What I want to change later:
+ * - onTrackPercentage should be calculated from real daily logs
+ * - supportingQuote should change based on user's actual progress
+ */
 import { AnimatedCounter } from './AnimatedCounter';
 
 interface HeroSectionProps {
