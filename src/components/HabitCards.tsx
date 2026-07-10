@@ -208,14 +208,38 @@ export const HabitCards: React.FC<HabitCardsProps> = ({
                     {isImproving ? 'Improving' : 'Reviewing'}
                   </span>
                 </div>
+                {/* Daily Check-in */}
+                
+                     <div className="mt-3 pt-3 border-t border-app-border/30 flex items-center justify-between">
+                          <span className="text-[10px] text-app-muted uppercase tracking-wider">
+                             Log today
+                               </span>
+                                 <div className="flex items-center gap-2">
+                                      <input
+                                      type="number"
+                                        min="0"
+                                           max="24"
+                                              step="0.5"
+                                                defaultValue={habit.dailyHours}
+                                                 onBlur={(e) => {
+                                                     const val = Number(e.target.value);
+                                                      if (!isNaN(val) && val >= 0 && val <= 24) {
+                                                      onUpdateHours(habit.id, val);
+                                                              }
+                                                              }}
+                                                                className="w-16 bg-app-surface border border-app-border rounded-lg px-2 py-1 text-xs text-app-text focus:outline-none focus:border-app-green premium-transition text-center"
+                                                                        />
+                                                                           <span className="text-[10px] text-app-muted">hrs</span>
+                                                                                    </div>
+                                                                                      </div> 
 
-              </div>
+                                                                                      </div>
 
-            </div>
-          );
-        })}
-      </div>
+                                                                                         </div>
+                                                                                         );
+                                                                                                })}
+                                                                                                 </div>
 
-    </section>
+                                                                                                  </section>
   );
 };
