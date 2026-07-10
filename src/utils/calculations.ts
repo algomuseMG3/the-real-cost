@@ -25,6 +25,15 @@
  * Pure calculation functions for "The Real Cost"
  * These functions power the reflective data storytelling without using clinical jargon.
  */
+/**
+ * Builds weeklyData array from real daily log entries.
+ * Groups log entries by week and sums hours per week.
+ * Returns array of 6 weekly totals for the journey graph.
+ * @param log array of daily check-in entries with date and hours
+ * @param startHours original daily hours when tracking began
+ * @returns array of 6 numbers representing weekly totals
+ 
+ */
 
 /**
  * Calculates the annual monetary equivalent of time spent on a habit.
