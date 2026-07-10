@@ -36,6 +36,7 @@ export interface Habit {
   startHours: number;
   weeklyData: number[]; // Hours spent per week over the last 6 weeks
   subCopy: string;
+  log?: { date: string; hours: number }[];
 }
 
 export interface UserState {

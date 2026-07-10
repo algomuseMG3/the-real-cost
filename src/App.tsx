@@ -171,11 +171,25 @@ const focusTimeGained = Number(
   const handleUpdateHours = (id: string, newHours: number) => {
     setHabits(prev => prev.map(h => {
       if (h.id === id) {
-        const trend = newHours < h.startHours ? 'improving' : newHours > h.startHours ? 'worsening' : 'stable';
+        const trend = newHours < h.startHours ? 'improving' 
+        : newHours > h.startHours ? 'worsening' 
+        : 'stable';
         // update weekly data slightly to reflect the new reality
         const updatedWeekly = [...h.weeklyData];
         updatedWeekly[updatedWeekly.length - 1] = newHours * 7;
-        return { ...h, dailyHours: newHours, trend, weeklyData: updatedWeekly };
+
+        // Build updated log
+      const existingLog = h.log || [];
+      const todayEntry = existingLog.find(l => l.date === today);
+      const updatedLog = todayEntry
+        ? existingLog.map(l => l.date === today ? { ...l, hours: newHours } : l)
+        : [...existingLog, { date: today, hours: newHours }];
+        return {
+           ...h,
+            dailyHours: newHours,
+             trend, weeklyData: updatedWeekly,
+             log: updatedLog
+        };
       }
       return h;
     }));
