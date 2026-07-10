@@ -46,6 +46,7 @@ import { OnboardingFlow } from './components/OnboardingFlow';
 import { ConfigureModal } from './components/ConfigureModal';
 import { InsightsTab } from './components/InsightsTab';
 
+
 import { 
   SEED_USER, 
   SEED_HABITS, 
@@ -58,7 +59,8 @@ import {
 
 import { 
   calcMoneySaved, 
-  calcYearlyProjection 
+  calcYearlyProjection ,
+  buildWeeklyDataFromLog,
 } from './utils/calculations';
 
 const STORAGE_KEY = 'real_cost_app_state_v1';
@@ -292,10 +294,19 @@ const focusTimeGained = Number(
   // Prepare Chart Data for the JourneyGraph
   const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'This Week'];
   
-  // Aggregate weekly data across all habits
-  const hoursLostData = weeks.map((_, idx) => {
-    return Number(habits.reduce((sum, h) => sum + (h.weeklyData[idx] || h.startHours * 7), 0).toFixed(1));
-  });
+  // Build real weekly data from logs where available
+const habitWeeklyData = habits.map(h => 
+  buildWeeklyDataFromLog(h.log || [], h.startHours)
+);
+
+// Aggregate weekly data across all habits
+const hoursLostData = weeks.map((_, idx) => {
+  return Number(
+    habitWeeklyData.reduce((sum, weeklyData) => 
+      sum + (weeklyData[idx] || 0), 0
+    ).toFixed(1)
+  );
+});
 
   // Hours reclaimed data: the difference between the initial baseline and that week's lost hours
   const initialBaselineWeekly = habits.reduce((sum, h) => sum + h.startHours * 7, 0);

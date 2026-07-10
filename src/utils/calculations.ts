@@ -118,4 +118,45 @@ export function calcWeeklyReclaimed(
 export function calcMoneyCost (dailyCost : number ) : number {
   return Math.round(dailyCost * 365);
 }
+export function buildWeeklyDataFromLog
+(log: { date: string; hours: number }[],
+  startHours: number
+): number[] {
+//If no real log exists, return estimated data from startHors
+if (!log || log.length === 0) {
+  return [
+    startHours *7,
+    startHours *6.8,
+    startHours *6.5,
+    startHours *6.0,
+    startHours *5.5,
+    startHours *5.0
+  ];
+}
 
+//sort log by date oldest first
+const sorted = [...log].sort(
+  (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  //group entries into weeks  7 days each
+  const weeks: number[][] = [[], [], [], [], [], []];
+  const firstDate = new Date(sorted[0].date).getTime();
+  const msPerDay = 86400000;
+
+  sorted.forEach(entry => {
+    const daysSinceStart = Math.floor(
+      (new Date(entry.date).getTime() - firstDate) / msPerDay
+    );
+    const weekIndex = Math.min(Math.floor(daysSinceStart / 7), 5);
+    weeks[weekIndex].push(entry.hours);
+  });
+   // Calculate weekly total — if no entries for that week use previous week
+  let lastKnown = startHours * 7;
+  return weeks.map(weekEntries => {
+    if (weekEntries.length === 0) return lastKnown;
+    const avg = weekEntries.reduce((s, h) => s + h, 0) / weekEntries.length;
+    lastKnown = Number((avg * 7).toFixed(1));
+    return lastKnown;
+  });
+}
+  
