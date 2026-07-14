@@ -58,11 +58,24 @@ export interface Milestone {
   description: string;
 }
 
+// Add this function above SEED_USER
+function getCurrentWeekRange(): string {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun',
+                  'Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[monday.getMonth()]} ${monday.getDate()} – ${months[sunday.getMonth()]} ${sunday.getDate()}`;
+}
+
 export const SEED_USER: UserState = {
   name: "Monika",
   age: 19,
   streakDays: 1,
-  weekStart: "May 26– Jun 1",
+  weekStart: getCurrentWeekRange(),
   hourlyValue: 200, // ₹500 per hour
   currency: "₹"
 };
