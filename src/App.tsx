@@ -171,6 +171,7 @@ const focusTimeGained = Number(
 
   // Handlers
   const handleUpdateHours = (id: string, newHours: number) => {
+     const today = new Date().toISOString().split('T')[0]; // 
     setHabits(prev => prev.map(h => {
       if (h.id === id) {
         const trend = newHours < h.startHours ? 'improving' 
