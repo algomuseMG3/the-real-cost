@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;1,400;1,500&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-app-bg: #0e1014;
+  --color-app-surface: rgba(255, 255, 255, 0.035);
+  --color-app-border: rgba(255, 255, 255, 0.07);
+  --color-app-text: #ede9e2;
+  --color-app-muted: rgba(221, 217, 210, 0.4);
+  --color-app-green: #88c9a8;
+  --color-app-coral: #e0845a;
+  --color-app-amber: #d4a96a;
+
+  --font-serif: 'Lora', serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+body {
+  background-color: #0e1014;
+  color: #ede9e2;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom premium scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #0e1014;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Soft transition classes for premium feel */
+.premium-transition {
+  transition: all 0.2s ease;
+}
+
+.premium-card {
+  background-color: rgba(255, 255, 255, 0.035);
+  border: 0.5px solid rgba(255, 255, 255, 0.07);
+  border-radius: 11px;
+}
+
+.premium-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
