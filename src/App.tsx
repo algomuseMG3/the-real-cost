@@ -109,6 +109,7 @@ export default function App() {
         if (parsed.user && parsed.habits) {
           setUser(parsed.user);
           setHabits(parsed.habits);
+          console.log('Loaded state from localStorage', parsed.habits);
           setMilestones(parsed.milestones || SEED_MILESTONES);
           setIsOnboarding(false);
           return;
