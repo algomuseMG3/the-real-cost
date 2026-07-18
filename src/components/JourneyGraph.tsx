@@ -168,8 +168,10 @@ export const JourneyGraph: React.FC<JourneyGraphProps> = ({
             Progress over time
           </h2>
           <p className="text-xs text-app-text mt-1 font-light">
-            You are slowly shifting your habits.
-          </p>
+          {hoursReclaimedData[5] > 0 
+           ? 'You are slowly shifting your habits.' 
+           : 'Start logging daily to see your journey unfold.'}
+            </p>
         </div>
 
         {/* Custom Legend */}
