@@ -59,7 +59,7 @@ export interface Milestone {
 }
 
 // Add this function above SEED_USER
-function getCurrentWeekRange(): string {
+export function getCurrentWeekRange(): string {
   const now = new Date();
   const day = now.getDay();
   const monday = new Date(now);
