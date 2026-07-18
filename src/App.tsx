@@ -47,11 +47,13 @@ import { ConfigureModal } from './components/ConfigureModal';
 import { InsightsTab } from './components/InsightsTab';
 
 
+
 import { 
   SEED_USER, 
   SEED_HABITS, 
   SEED_MILESTONES, 
   ROTATING_QUOTES,
+  getCurrentWeekRange,
   Habit,
   UserState,
   Milestone
@@ -73,7 +75,10 @@ export default function App() {
   );
 
   // State
-  const [user, setUser] = useState<UserState>(SEED_USER);
+  const [user, setUser] = useState<UserState>({
+  ...SEED_USER,
+  weekStart: getCurrentWeekRange()
+});
   const [habits, setHabits] = useState<Habit[]>(SEED_HABITS);
   const [milestones, setMilestones] = useState<Milestone[]>(SEED_MILESTONES);
   
