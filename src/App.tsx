@@ -249,14 +249,9 @@ const focusTimeGained = Number(
         startHours: data.primaryHabitHours,
         dailyCost: 0,
         trend: 'improving',
-        weeklyData: [
-          data.primaryHabitHours * 7,
-          data.primaryHabitHours * 6.8,
-          data.primaryHabitHours * 6.5,
-          data.primaryHabitHours * 6.0,
-          data.primaryHabitHours * 5.5,
-          (data.primaryHabitHours - 0.4) * 7
-        ],
+        weeklyData: Array(6).fill(
+        Number((data.primaryHabitHours * 7).toFixed(1))
+        ),
         subCopy: "Down from your initial baseline"
       },
       ...SEED_HABITS.slice(1) // keep some beautiful rich secondary habits for a full dashboard!
