@@ -62,7 +62,6 @@ import {
 import { 
   calcMoneySaved, 
   calcYearlyProjection ,
-  buildWeeklyDataFromLog,
 } from './utils/calculations';
 
 const STORAGE_KEY = 'real_cost_app_state_v1';
@@ -107,7 +106,10 @@ export default function App() {
       try {
         const parsed = JSON.parse(stored);
         if (parsed.user && parsed.habits) {
-          setUser(parsed.user);
+          setUser({
+          ...parsed.user,
+           weekStart: getCurrentWeekRange()
+          });
           setHabits(parsed.habits);
           console.log('Loaded state from localStorage', parsed.habits);
           setMilestones(parsed.milestones || SEED_MILESTONES);
@@ -136,8 +138,8 @@ export default function App() {
   const totalCurrentDailyHours = habits.reduce((sum, h) => sum + h.dailyHours, 0);
   
   // Hours reclaimed this week
-  const dailyHoursReclaimed = Math.max(0, totalStartDailyHours - totalCurrentDailyHours);
-  const weeklyHoursReclaimed = Number((dailyHoursReclaimed * 7).toFixed(1));
+  const dailyHoursReclaimedPerday = Math.max(0, totalStartDailyHours - totalCurrentDailyHours);
+  const weeklyHoursReclaimed = Number((dailyHoursReclaimedPerday * 7).toFixed(1));
 
   // Money saved: direct daily costs saved over the streak + value of time if applicable
   const totalDailyCostSaved = habits.reduce((sum, h) => {
@@ -168,7 +170,7 @@ const focusTimeGained = Number(
 
   // On track percentage
   const onTrackPercentage = totalStartDailyHours > 0
-  ? Math.round((dailyHoursReclaimed / totalStartDailyHours) * 100)
+  ? Math.round((dailyHoursReclaimedPerday / totalStartDailyHours) * 100)
   : 0
 
   // Yearly projections for the FutureImpactPanel
@@ -292,29 +294,32 @@ const focusTimeGained = Number(
       </div>
     );
   }
-
-  // Prepare Chart Data for the JourneyGraph
-  const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'This Week'];
-  
-  // Build real weekly data from logs where available
-const habitWeeklyData = habits.map(h => 
-  buildWeeklyDataFromLog(h.log || [], h.startHours)
-);
-
-// Aggregate weekly data across all habits
-const hoursLostData = weeks.map((_, idx) => {
-  return Number(
-    habitWeeklyData.reduce((sum, weeklyData) => 
-      sum + (weeklyData[idx] || 0), 0
-    ).toFixed(1)
-  );
+  // Last 7 days real data
+const last7Days = Array.from({ length: 7 }, (_, i) => {
+  const d = new Date();
+  d.setDate(d.getDate() - (6 - i));
+  return d.toISOString().split('T')[0];
 });
 
-  // Hours reclaimed data: the difference between the initial baseline and that week's lost hours
-  const initialBaselineWeekly = habits.reduce((sum, h) => sum + h.startHours * 7, 0);
-  const hoursReclaimedData = hoursLostData.map(lost => {
-    return Math.max(0, Number((initialBaselineWeekly - lost).toFixed(1)));
-  });
+const dayLabels = last7Days.map(date => {
+  const d = new Date(date);
+  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+});
+
+const totalStartDaily = habits.reduce((s, h) => s + h.startHours, 0);
+
+const hoursLostData = last7Days.map(date =>
+  Number(habits.reduce((sum, h) => {
+    const entry = (h.log || []).find(l => l.date === date);
+    return sum + (entry ? entry.hours : h.dailyHours);
+  }, 0).toFixed(1))
+);
+
+const hoursReclaimedData = hoursLostData.map(lost =>
+  Math.max(0, Number((totalStartDaily - lost).toFixed(1)))
+);
+
+
 
   return (
     <div className="min-h-screen bg-app-bg text-app-text flex flex-col justify-between selection:bg-app-green/20 selection:text-app-green">
@@ -486,12 +491,11 @@ const hoursLostData = weeks.map((_, idx) => {
         {activeTab === 'progress' && (
           <div className="space-y-12 animate-fade-in py-4">
             
-            <JourneyGraph 
-              weeks={weeks}
-              hoursLostData={hoursLostData}
-              hoursReclaimedData={hoursReclaimedData}
-            />
-
+            <JourneyGraph
+            weeks={dayLabels}
+            hoursLostData={hoursLostData}
+             hoursReclaimedData={hoursReclaimedData}
+             />
             <MilestonesPanel 
               milestones={milestones}
               currency={user.currency}

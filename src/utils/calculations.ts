@@ -131,17 +131,13 @@ export function buildWeeklyDataFromLog
 (log: { date: string; hours: number }[],
   startHours: number
 ): number[] {
-//If no real log exists, return estimated data from startHors
-if (!log || log.length === 0) {
-  return [
-    startHours *7,
-    startHours *6.8,
-    startHours *6.5,
-    startHours *6.0,
-    startHours *5.5,
-    startHours *5.0
-  ];
-}
+//If no real log exsts, show a flat baseline
+//the graph will stay flat until the user logs real data
+  if (!log || log.length === 0) {
+    return Array(6).fill(
+      Number((startHours * 7).toFixed(1))
+    );
+  }
 
 //sort log by date oldest first
 const sorted = [...log].sort(

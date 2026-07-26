@@ -47,6 +47,7 @@ ChartJS.register(
   ChartLegend
 );
 
+
 interface JourneyGraphProps {
   weeks: string[];
   hoursLostData: number[];
@@ -168,9 +169,9 @@ export const JourneyGraph: React.FC<JourneyGraphProps> = ({
             Progress over time
           </h2>
           <p className="text-xs text-app-text mt-1 font-light">
-          {hoursReclaimedData[5] > 0 
-           ? 'You are slowly shifting your habits.' 
-           : 'Start logging daily to see your journey unfold.'}
+            {hoursReclaimedData[hoursReclaimedData.length - 1] > 0
+            ? 'You are slowly shifting your habits.'
+            : 'Log your daily hours to see your real journey.'}
             </p>
         </div>
 
