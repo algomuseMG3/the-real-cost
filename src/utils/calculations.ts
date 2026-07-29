@@ -119,6 +119,57 @@ export function calcWeeklyReclaimed(
     },0) 
     *10 )/10;
 }
+import type { Habit } from '../data/seedData';
+
+export interface GraphData {
+  weeks: string[];
+  hoursLostData: number[];
+  hoursReclaimedData: number[];
+}
+
+/**
+ * Aggregates every habit's daily logs into the last seven calendar days.
+ * `startHours` is the fixed initial baseline, so reclaimed time is measured
+ * against where the user began rather than against a changing daily value.
+ */
+export function buildLast7DaysGraphData(habits: Habit[]): GraphData {
+  const today = new Date();
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (6 - index));
+    return date.toISOString().slice(0, 10);
+  });
+
+  const weeks = days.map(day => {
+    const date = new Date(day);
+    return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+  });
+
+  const hoursByDay = new Map(days.map(day => [day, 0]));
+
+  habits.forEach(habit => {
+    habit.log?.forEach(({ date, hours }) => {
+      if (hoursByDay.has(date)) {
+        hoursByDay.set(date, (hoursByDay.get(date) ?? 0) + hours);
+      }
+    });
+  });
+
+  const initialBaseline = habits.reduce(
+    (total, habit) => total + habit.startHours,
+    0
+  );
+
+  const hoursLostData = days.map(day =>
+    Number((hoursByDay.get(day) ?? 0).toFixed(1))
+  );
+  const hoursReclaimedData = hoursLostData.map(hoursLost =>
+    Math.max(0, Number((initialBaseline - hoursLost).toFixed(0)))
+  );
+
+  return { weeks, hoursLostData, hoursReclaimedData };
+}
+
 /**
  * Calculates total direct money spent on a habit per year
  * @param dailyCost money spent per day on this habit

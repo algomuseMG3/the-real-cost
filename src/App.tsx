@@ -61,7 +61,9 @@ import {
 
 import { 
   calcMoneySaved, 
-  calcYearlyProjection ,
+  calcYearlyProjection,
+  buildLast7DaysGraphData,
+  GraphData
 } from './utils/calculations';
 
 const STORAGE_KEY = 'real_cost_app_state_v1';
@@ -89,6 +91,16 @@ export default function App() {
 
   // Rotating quote index
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
+  const [graphData, setGraphData] = useState<GraphData>({
+    weeks: [],
+    hoursLostData: [],
+    hoursReclaimedData: []
+  });
+
+  // Build last 7 days graph data from habit logs
+  useEffect(() => {
+    setGraphData(buildLast7DaysGraphData(habits));
+  }, [habits]);
 
   // Load state on mount
   useEffect(() => {
@@ -294,34 +306,7 @@ const focusTimeGained = Number(
       </div>
     );
   }
-  // Last 7 days real data
-const last7Days = Array.from({ length: 7 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() - (6 - i));
-  return d.toISOString().split('T')[0];
-});
-
-const dayLabels = last7Days.map(date => {
-  const d = new Date(date);
-  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
-});
-
-const totalStartDaily = habits.reduce((s, h) => s + h.startHours, 0);
-
-const hoursLostData = last7Days.map(date =>
-  Number(habits.reduce((sum, h) => {
-    const entry = (h.log || []).find(l => l.date === date);
-    return sum + (entry ? entry.hours : h.dailyHours);
-  }, 0).toFixed(1))
-);
-
-const hoursReclaimedData = hoursLostData.map(lost =>
-  Math.max(0, Number((totalStartDaily - lost).toFixed(1)))
-);
-
-
-
-  return (
+    return (
     <div className="min-h-screen bg-app-bg text-app-text flex flex-col justify-between selection:bg-app-green/20 selection:text-app-green">
       
       {/* Top Demo / Environment Switcher Banner */}
@@ -492,10 +477,10 @@ const hoursReclaimedData = hoursLostData.map(lost =>
           <div className="space-y-12 animate-fade-in py-4">
             
             <JourneyGraph
-            weeks={dayLabels}
-            hoursLostData={hoursLostData}
-             hoursReclaimedData={hoursReclaimedData}
-             />
+              weeks={graphData.weeks}
+              hoursLostData={graphData.hoursLostData}
+              hoursReclaimedData={graphData.hoursReclaimedData}
+            />
             <MilestonesPanel 
               milestones={milestones}
               currency={user.currency}
