@@ -46,12 +46,10 @@ import { OnboardingFlow } from './components/OnboardingFlow';
 import { ConfigureModal } from './components/ConfigureModal';
 import { InsightsTab } from './components/InsightsTab';
 
-
-
-import { 
-  SEED_USER, 
-  SEED_HABITS, 
-  SEED_MILESTONES, 
+import {
+  SEED_USER,
+  SEED_HABITS,
+  SEED_MILESTONES,
   ROTATING_QUOTES,
   getCurrentWeekRange,
   Habit,
@@ -59,53 +57,40 @@ import {
   Milestone
 } from './data/seedData';
 
-import { 
-  calcMoneySaved, 
-  calcYearlyProjection,
-  buildLast7DaysGraphData,
-  GraphData
+import {
+  calcMoneySaved,
+  calcYearlyProjection
 } from './utils/calculations';
 
+import {
+  upsertTodaySnapshot,
+  getLast7DaysGraphData
+} from './utils/dailysnapshot';
+
 const STORAGE_KEY = 'real_cost_app_state_v1';
+const SNAPSHOT_KEY = 'real_cost_daily_snapshots_v1';
 
 export default function App() {
-  // Determine if we are on the /demo route or if the user requests the demo
   const isDemoRoute = typeof window !== 'undefined' && (
-    window.location.pathname.includes('/demo') || 
+    window.location.pathname.includes('/demo') ||
     window.location.search.includes('demo=true')
   );
 
-  // State
+  // ── State ──────────────────────────────────────────────────────────────────
   const [user, setUser] = useState<UserState>({
-  ...SEED_USER,
-  weekStart: getCurrentWeekRange()
-});
+    ...SEED_USER,
+    weekStart: getCurrentWeekRange()
+  });
   const [habits, setHabits] = useState<Habit[]>(SEED_HABITS);
   const [milestones, setMilestones] = useState<Milestone[]>(SEED_MILESTONES);
-  
   const [activeTab, setActiveTab] = useState<string>('today');
   const [isOnboarding, setIsOnboarding] = useState<boolean>(false);
-  
-  // Modals
   const [modalMode, setModalMode] = useState<'add-habit' | 'settings' | null>(null);
-
-  // Rotating quote index
   const [quoteIndex, setQuoteIndex] = useState<number>(0);
-  const [graphData, setGraphData] = useState<GraphData>({
-    weeks: [],
-    hoursLostData: [],
-    hoursReclaimedData: []
-  });
 
-  // Build last 7 days graph data from habit logs
-  useEffect(() => {
-    setGraphData(buildLast7DaysGraphData(habits));
-  }, [habits]);
-
-  // Load state on mount
+  // ── Load state on mount ────────────────────────────────────────────────────
   useEffect(() => {
     if (isDemoRoute) {
-      // Force seeded demo data
       setUser(SEED_USER);
       setHabits(SEED_HABITS);
       setMilestones(SEED_MILESTONES);
@@ -119,107 +104,103 @@ export default function App() {
         const parsed = JSON.parse(stored);
         if (parsed.user && parsed.habits) {
           setUser({
-          ...parsed.user,
-           weekStart: getCurrentWeekRange()
+            ...parsed.user,
+            weekStart: getCurrentWeekRange()   // always use real current week
           });
           setHabits(parsed.habits);
-          console.log('Loaded state from localStorage', parsed.habits);
           setMilestones(parsed.milestones || SEED_MILESTONES);
           setIsOnboarding(false);
+
+          // Seed today's snapshot so graph has a point even if user doesn't log
+          upsertTodaySnapshot(parsed.habits);
           return;
         }
       } catch (e) {
-        console.error("Failed to parse stored state", e);
+        console.error('Failed to parse stored state', e);
       }
     } else {
-      // If no stored data and not on demo route, let's start with the calm onboarding!
       setIsOnboarding(true);
     }
   }, [isDemoRoute]);
 
-  // Save state whenever it changes (unless we are purely exploring the demo without editing)
+  // ── Save state on every change ─────────────────────────────────────────────
   useEffect(() => {
-    // We can save state safely so updates in demo also persist locally for a great experience
     if (!isOnboarding) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, habits, milestones }));
     }
   }, [user, habits, milestones, isOnboarding]);
 
-  // Calculate high-level derived metrics
+  // ── Derived metrics ────────────────────────────────────────────────────────
   const totalStartDailyHours = habits.reduce((sum, h) => sum + h.startHours, 0);
   const totalCurrentDailyHours = habits.reduce((sum, h) => sum + h.dailyHours, 0);
-  
-  // Hours reclaimed this week
-  const dailyHoursReclaimedPerday = Math.max(0, totalStartDailyHours - totalCurrentDailyHours);
-  const weeklyHoursReclaimed = Number((dailyHoursReclaimedPerday * 7).toFixed(1));
 
-  // Money saved: direct daily costs saved over the streak + value of time if applicable
+  const dailyHoursReclaimedPerDay = Math.max(0, totalStartDailyHours - totalCurrentDailyHours);
+  const weeklyHoursReclaimed = Number((dailyHoursReclaimedPerDay * 7).toFixed(1));
+
   const totalDailyCostSaved = habits.reduce((sum, h) => {
-  if (
-    h.dailyCost > 0 &&
-    h.dailyHours < h.startHours &&
-    h.startHours > 0
-  ) {
-    const rawFraction = (h.startHours - h.dailyHours) / h.startHours;
-    const savedFraction = Math.min(1, Math.max(0, rawFraction));
-
-    return sum + (h.dailyCost * savedFraction);
-  }
-  return sum;
-}, 0);
-
+    if (h.dailyCost > 0 && h.dailyHours < h.startHours && h.startHours > 0) {
+      const rawFraction = (h.startHours - h.dailyHours) / h.startHours;
+      const savedFraction = Math.min(1, Math.max(0, rawFraction));
+      return sum + (h.dailyCost * savedFraction);
+    }
+    return sum;
+  }, 0);
 
   const moneySaved = totalDailyCostSaved > 0
-  ? calcMoneySaved(totalDailyCostSaved, user.streakDays)
-  : 0;
+    ? calcMoneySaved(totalDailyCostSaved, user.streakDays)
+    : 0;
 
-  // Focus time gained
   const FOCUS_CONVERSION_RATE = 0.85;
+  const focusTimeGained = Number((weeklyHoursReclaimed * FOCUS_CONVERSION_RATE).toFixed(1));
 
-const focusTimeGained = Number(
-  (weeklyHoursReclaimed * FOCUS_CONVERSION_RATE).toFixed(1)
-);
-
-  // On track percentage
   const onTrackPercentage = totalStartDailyHours > 0
-  ? Math.round((dailyHoursReclaimedPerday / totalStartDailyHours) * 100)
-  : 0
+    ? Math.round((dailyHoursReclaimedPerDay / totalStartDailyHours) * 100)
+    : 0;
 
-  // Yearly projections for the FutureImpactPanel
   const yearlyHoursReclaimed = calcYearlyProjection(weeklyHoursReclaimed);
   const yearlyMoneySaved = Math.round(moneySaved * (365 / Math.max(1, user.streakDays)));
 
-  // Handlers
+  // ── 7-day rolling graph data ───────────────────────────────────────────────
+  // Reads from the daily snapshot store — updates instantly when habits change
+  const graphData = getLast7DaysGraphData(habits);
+  const dayLabels        = graphData.map(d => d.day);
+  const hoursLostData    = graphData.map(d => d.lost);
+  const hoursReclaimedData = graphData.map(d => d.reclaimed);
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleUpdateHours = (id: string, newHours: number) => {
-     const today = new Date().toISOString().split('T')[0]; // 
-    setHabits(prev => prev.map(h => {
-      if (h.id === id) {
-        const trend = newHours < h.startHours ? 'improving' 
-        : newHours > h.startHours ? 'worsening' 
-        : 'stable';
-        // update weekly data slightly to reflect the new reality
+    const today = new Date().toISOString().split('T')[0];
+
+    setHabits(prev => {
+      const updated = prev.map(h => {
+        if (h.id !== id) return h;
+
+        const trend : Habit['trend'] =
+        newHours < h.startHours ? 'improving'
+          : newHours > h.startHours ? 'worsening'
+          : 'stable';
+
         const updatedWeekly = [...h.weeklyData];
         updatedWeekly[updatedWeekly.length - 1] = newHours * 7;
 
-        // Build updated log
-      const existingLog = h.log || [];
-      const todayEntry = existingLog.find(l => l.date === today);
-      const updatedLog = todayEntry
-        ? existingLog.map(l => l.date === today ? { ...l, hours: newHours } : l)
-        : [...existingLog, { date: today, hours: newHours }];
-        return {
-           ...h,
-            dailyHours: newHours,
-             trend, weeklyData: updatedWeekly,
-             log: updatedLog
-        };
-      }
-      return h;
-    }));
+        const existingLog = h.log || [];
+        const todayEntry = existingLog.find(l => l.date === today);
+        const updatedLog = todayEntry
+          ? existingLog.map(l => l.date === today ? { ...l, hours: newHours } : l)
+          : [...existingLog, { date: today, hours: newHours }];
 
-    // Update milestones progress dynamically
+        return { ...h, dailyHours: newHours, trend, weeklyData: updatedWeekly, log: updatedLog };
+      });
+
+      // Snapshot the updated habits so graph updates instantly
+      upsertTodaySnapshot(updated);
+      return updated;
+    });
+
     if (newHours < 1.0) {
-      setMilestones(prev => prev.map(m => m.id === 'ms-4' ? { ...m, earned: true, progress: 1 } : m));
+      setMilestones(prev =>
+        prev.map(m => m.id === 'ms-4' ? { ...m, earned: true, progress: 1 } : m)
+      );
     }
   };
 
@@ -244,6 +225,7 @@ const focusTimeGained = Number(
     setHabits(SEED_HABITS);
     setMilestones(SEED_MILESTONES);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SNAPSHOT_KEY);  // clear graph history too
     setModalMode(null);
   };
 
@@ -254,38 +236,35 @@ const focusTimeGained = Number(
     drainingHabit: string;
     fiveHoursChange: string;
   }) => {
-    // Seed their custom habit
     const customHabits: Habit[] = [
       {
         id: 'habit-custom-1',
         name: data.primaryHabitName,
         icon: 'Smartphone',
-        dailyHours: Math.max(0.5, data.primaryHabitHours - 0.4), // show a gentle initial improvement!
+        dailyHours: Math.max(0.5, data.primaryHabitHours - 0.4),
         startHours: data.primaryHabitHours,
         dailyCost: 0,
         trend: 'improving',
-        weeklyData: Array(6).fill(
-        Number((data.primaryHabitHours * 7).toFixed(1))
-        ),
-        subCopy: "Down from your initial baseline"
+        weeklyData: Array(6).fill(Number((data.primaryHabitHours * 7).toFixed(1))),
+        subCopy: 'Down from your initial baseline'
       },
-      ...SEED_HABITS.slice(1) // keep some beautiful rich secondary habits for a full dashboard!
+      ...SEED_HABITS.slice(1)
     ];
 
+    // Seed today's snapshot immediately after onboarding
+    upsertTodaySnapshot(customHabits);
     setHabits(customHabits);
     setIsOnboarding(false);
   };
 
-  // Cycle quote helper
   const cycleQuote = () => {
     setQuoteIndex((prev) => (prev + 1) % ROTATING_QUOTES.length);
   };
 
-  // Render Onboarding Flow
+  // ── Onboarding screen ──────────────────────────────────────────────────────
   if (isOnboarding) {
     return (
       <div className="min-h-screen bg-app-bg text-app-text flex flex-col justify-between">
-        {/* Simple minimal header for onboarding */}
         <header className="py-6 px-8 border-b border-app-border/40 flex justify-between items-center">
           <span className="font-serif text-lg tracking-wide text-app-text">
             the <span className="text-app-green italic">real</span> cost
@@ -294,59 +273,51 @@ const focusTimeGained = Number(
             Self-Awareness Companion
           </span>
         </header>
-
-        <OnboardingFlow 
-          onComplete={handleOnboardingComplete} 
-          onSkip={() => setIsOnboarding(false)} 
+        <OnboardingFlow
+          onComplete={handleOnboardingComplete}
+          onSkip={() => setIsOnboarding(false)}
         />
-
         <footer className="py-4 text-center text-[10px] text-app-muted border-t border-app-border/20">
           Psychologically safe • No optimization pressure
         </footer>
       </div>
     );
   }
-    return (
+
+  // ── Main dashboard ─────────────────────────────────────────────────────────
+  return (
     <div className="min-h-screen bg-app-bg text-app-text flex flex-col justify-between selection:bg-app-green/20 selection:text-app-green">
-      
-      {/* Top Demo / Environment Switcher Banner */}
+
+      {/* Environment banner */}
       <div className="bg-app-surface border-b border-app-border py-2 px-6 text-xs">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center space-x-2">
             <span className="inline-block w-2 h-2 rounded-full bg-app-green"></span>
             <span className="text-app-muted font-light">
-              Mode: <strong className="text-app-text font-normal">{isDemoRoute ? 'Seeded Demo (/demo)' : 'Live Dashboard'}</strong>
+              Mode: <strong className="text-app-text font-normal">
+                {isDemoRoute ? 'Seeded Demo (/demo)' : 'Live Dashboard'}
+              </strong>
             </span>
           </div>
-
           <div className="flex items-center space-x-4 text-[11px]">
             <button
-              onClick={() => {
-                // Toggle onboarding
-                setIsOnboarding(true);
-              }}
+              onClick={() => setIsOnboarding(true)}
               className="text-app-muted hover:text-app-text premium-transition underline decoration-app-border hover:decoration-app-muted"
             >
               Re-run Onboarding
             </button>
-
             <span className="text-app-border">•</span>
-
             <button
               onClick={() => {
-                // Load pure seed data instantly
                 setUser(SEED_USER);
                 setHabits(SEED_HABITS);
                 setMilestones(SEED_MILESTONES);
               }}
               className="text-app-muted hover:text-app-text premium-transition underline decoration-app-border hover:decoration-app-muted"
-              title="Reload the rich default behavioral dataset"
             >
               Load Demo Dataset
             </button>
-
             <span className="text-app-border">•</span>
-
             <button
               onClick={() => setModalMode('settings')}
               className="text-app-green hover:text-app-green/80 premium-transition font-medium"
@@ -357,22 +328,19 @@ const focusTimeGained = Number(
         </div>
       </div>
 
-      {/* Main Navbar */}
-      <Navbar 
-        streakDays={user.streakDays} 
-        activeTab={activeTab} 
+      <Navbar
+        streakDays={user.streakDays}
+        activeTab={activeTab}
         setActiveTab={setActiveTab}
         onResetData={() => setModalMode('settings')}
       />
 
-      {/* Main Content Area */}
       <main className="max-w-6xl mx-auto px-6 py-4 flex-grow w-full">
-        
+
         {/* TAB 1: TODAY */}
         {activeTab === 'today' && (
           <div className="space-y-12 animate-fade-in">
-            
-            <HeroSection 
+            <HeroSection
               weekRange={user.weekStart}
               hoursReclaimed={weeklyHoursReclaimed}
               moneySaved={moneySaved}
@@ -381,28 +349,22 @@ const focusTimeGained = Number(
               currency={user.currency}
               supportingQuote={ROTATING_QUOTES[quoteIndex]}
             />
-
-            {/* Clickable quote reinforcement notice */}
             <div className="text-right -mt-8 mb-4">
-              <button 
+              <button
                 onClick={cycleQuote}
                 className="text-[10px] text-app-muted hover:text-app-text premium-transition italic"
-                title="Click to cycle reflection reinforcement"
               >
                 ✨ Notice another reflection
               </button>
             </div>
-
-            <DailyReflection 
+            <DailyReflection
               reflectionSentence={
-                weeklyHoursReclaimed > 5 
+                weeklyHoursReclaimed > 5
                   ? `You reclaimed ${weeklyHoursReclaimed} hours this week. Small changes are beginning to compound.`
-                  : "This week contained your lowest distraction time yet."
+                  : 'This week contained your lowest distraction time yet.'
               }
               supportingInsight="Grounded entirely in your logged behavioral patterns."
             />
-
-            {/* Preview of HabitCards */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] uppercase tracking-[0.08em] text-app-muted font-medium">
@@ -415,47 +377,42 @@ const focusTimeGained = Number(
                   View All & Edit →
                 </button>
               </div>
-              
-              <HabitCards 
-                habits={habits.slice(0, 2)} 
+              <HabitCards
+                habits={habits.slice(0, 2)}
                 hourlyValue={user.hourlyValue}
                 currency={user.currency}
                 onUpdateHours={handleUpdateHours}
                 onDeleteHabit={handleDeleteHabit}
               />
             </div>
-
           </div>
         )}
 
         {/* TAB 2: HABITS */}
         {activeTab === 'habits' && (
           <div className="space-y-8 animate-fade-in py-4">
-            
-            {/* Top overview banner */}
             <div className="premium-card p-6 bg-app-surface/50">
               <h2 className="text-sm font-medium text-app-text mb-1">
                 Intentional Time Allocation
               </h2>
               <p className="text-xs text-app-muted font-light leading-relaxed max-w-2xl">
-                Below are the active habits you are currently tracking. Adjust their daily hours as you notice yourself spending less time on them. Reclaiming even 15 minutes a day compounds into full days of freedom over the year.
+                Below are the active habits you are currently tracking. Adjust their daily hours
+                as you notice yourself spending less time on them. Reclaiming even 15 minutes a
+                day compounds into full days of freedom over the year.
               </p>
             </div>
-
-            <HabitCards 
-              habits={habits} 
+            <HabitCards
+              habits={habits}
               hourlyValue={user.hourlyValue}
               currency={user.currency}
               onUpdateHours={handleUpdateHours}
               onDeleteHabit={handleDeleteHabit}
               onAddHabit={() => setModalMode('add-habit')}
             />
-
-            {/* Empty State protection */}
             {habits.length === 0 && (
               <div className="text-center py-16 space-y-4 border border-app-border/40 rounded-xl">
                 <p className="font-serif italic text-app-muted text-lg">
-                  “Awareness begins with noticing patterns.”
+                  "Awareness begins with noticing patterns."
                 </p>
                 <p className="text-xs text-app-muted max-w-md mx-auto font-light">
                   Add your first habit to begin understanding where your time quietly goes.
@@ -468,36 +425,32 @@ const focusTimeGained = Number(
                 </button>
               </div>
             )}
-
           </div>
         )}
 
         {/* TAB 3: PROGRESS */}
         {activeTab === 'progress' && (
           <div className="space-y-12 animate-fade-in py-4">
-            
             <JourneyGraph
-              weeks={graphData.weeks}
-              hoursLostData={graphData.hoursLostData}
-              hoursReclaimedData={graphData.hoursReclaimedData}
+              weeks={dayLabels}
+              hoursLostData={hoursLostData}
+              hoursReclaimedData={hoursReclaimedData}
             />
-            <MilestonesPanel 
+            <MilestonesPanel
               milestones={milestones}
               currency={user.currency}
             />
-
-            <FutureImpactPanel 
+            <FutureImpactPanel
               yearlyHoursReclaimed={yearlyHoursReclaimed}
               yearlyMoneySaved={yearlyMoneySaved}
               currency={user.currency}
             />
-
           </div>
         )}
 
         {/* TAB 4: INSIGHTS */}
         {activeTab === 'insights' && (
-          <InsightsTab 
+          <InsightsTab
             user={user}
             habits={habits}
             onUpdateAge={(newAge) => handleUpdateUser({ age: newAge })}
@@ -506,9 +459,8 @@ const focusTimeGained = Number(
 
       </main>
 
-      {/* Modals */}
       {modalMode && (
-        <ConfigureModal 
+        <ConfigureModal
           mode={modalMode}
           user={user}
           onClose={() => setModalMode(null)}
@@ -518,7 +470,6 @@ const focusTimeGained = Number(
         />
       )}
 
-      {/* Premium Footer */}
       <footer className="border-t border-app-border mt-12 bg-app-bg/50 py-8 text-xs text-app-muted">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 font-light">
           <div>
@@ -526,7 +477,6 @@ const focusTimeGained = Number(
             <span className="mx-2 text-app-border">•</span>
             <span>A calm behavioral self-awareness companion</span>
           </div>
-
           <div className="flex items-center space-x-6 text-[11px]">
             <span>No Leaderboards</span>
             <span>•</span>

@@ -182,7 +182,7 @@ export function buildWeeklyDataFromLog
 (log: { date: string; hours: number }[],
   startHours: number
 ): number[] {
-//If no real log exsts, show a flat baseline
+//If no real log exists, show a flat baseline
 //the graph will stay flat until the user logs real data
   if (!log || log.length === 0) {
     return Array(6).fill(
